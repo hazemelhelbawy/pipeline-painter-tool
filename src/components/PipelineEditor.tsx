@@ -13,6 +13,7 @@ export function PipelineEditor() {
   const {
     executionState,
     nodeStatuses,
+    executionEdges,
     executePipeline,
     stopExecution,
     resetExecution,
@@ -33,6 +34,9 @@ export function PipelineEditor() {
 
   const validation = validatePipeline(nodes, edges);
   const canExecute = validation.isValid && !executionState.isExecuting;
+
+  // Merge user edges with execution edges (execution edges take priority during execution)
+  const allEdges = executionState.isExecuting ? executionEdges : edges;
 
   return (
     <div className="h-screen w-full bg-background overflow-hidden">
@@ -75,6 +79,7 @@ export function PipelineEditor() {
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
             nodeStatuses={nodeStatuses}
+            edges={allEdges}
           />
           
           {/* Canvas Overlay Instructions */}

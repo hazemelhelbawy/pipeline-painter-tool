@@ -22,15 +22,19 @@ interface PipelineCanvasProps {
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
   nodeStatuses: Map<string, 'idle' | 'running' | 'completed' | 'error'>;
+  edges?: Edge[];
 }
 
 const nodeTypes = {
   'pipeline-node': CustomNode
 };
 
-function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: PipelineCanvasProps) {
+function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses, edges: externalEdges }: PipelineCanvasProps) {
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState([]);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState([]);
+  
+  // Use external edges if provided, otherwise use internal edges
+  const displayEdges = externalEdges || edges;
   const [draggedNodeType, setDraggedNodeType] = useState<NodeType | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -156,7 +160,7 @@ function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: P
     <div className="w-full h-full" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         onNodesChange={(changes) => {
           onNodesChangeInternal(changes);
           onNodesChange(nodes);

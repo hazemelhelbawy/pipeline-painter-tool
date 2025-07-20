@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Node, Edge } from '@xyflow/react';
+import { Node, Edge, MarkerType } from '@xyflow/react';
 import { ExecutionState, ExecutionLog, ValidationResult } from '@/types/pipeline';
 
 interface NodeExecution {
@@ -20,6 +20,8 @@ export function usePipelineExecution() {
   const [nodeStatuses, setNodeStatuses] = useState<Map<string, 'idle' | 'running' | 'completed' | 'error'>>(
     new Map()
   );
+  
+  const [executionEdges, setExecutionEdges] = useState<Edge[]>([]);
 
   // Validate pipeline structure
   const validatePipeline = useCallback((nodes: Node[], edges: Edge[]): ValidationResult => {
@@ -64,6 +66,44 @@ export function usePipelineExecution() {
       errors,
       warnings
     };
+  }, []);
+
+  // Generate execution edges based on execution order
+  const generateExecutionEdges = useCallback((nodes: Node[], existingEdges: Edge[]): Edge[] => {
+    // If there are existing edges, use them as the execution path
+    if (existingEdges.length > 0) {
+      return existingEdges.map(edge => ({
+        ...edge,
+        animated: true,
+        style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' }
+      }));
+    }
+
+    // If no edges exist, create a linear execution path based on node types
+    const dataSources = nodes.filter(node => (node.data as any)?.nodeType?.name === 'Data Source');
+    const transformers = nodes.filter(node => (node.data as any)?.nodeType?.name === 'Transformer');
+    const models = nodes.filter(node => (node.data as any)?.nodeType?.name === 'Model');
+    const sinks = nodes.filter(node => (node.data as any)?.nodeType?.name === 'Sink');
+    
+    const executionEdges: Edge[] = [];
+    let edgeId = 0;
+
+    // Create linear pipeline: Data Source → Transformer → Model → Sink
+    const pipeline = [...dataSources, ...transformers, ...models, ...sinks];
+    
+    for (let i = 0; i < pipeline.length - 1; i++) {
+      executionEdges.push({
+        id: `execution-edge-${edgeId++}`,
+        source: pipeline[i].id,
+        target: pipeline[i + 1].id,
+        animated: true,
+        style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: 'hsl(var(--primary))' }
+      });
+    }
+
+    return executionEdges;
   }, []);
 
   // Topological sort for execution order
@@ -197,6 +237,10 @@ export function usePipelineExecution() {
       return;
     }
 
+    // Generate execution edges
+    const newExecutionEdges = generateExecutionEdges(nodes, edges);
+    setExecutionEdges(newExecutionEdges);
+
     // Start execution
     setExecutionState(prev => ({
       ...prev,
@@ -287,11 +331,13 @@ export function usePipelineExecution() {
       logs: []
     });
     setNodeStatuses(new Map());
+    setExecutionEdges([]);
   }, []);
 
   return {
     executionState,
     nodeStatuses,
+    executionEdges,
     executePipeline,
     stopExecution,
     resetExecution,
