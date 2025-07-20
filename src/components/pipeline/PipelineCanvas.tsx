@@ -41,6 +41,20 @@ function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: P
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // Handle node deletion
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) => {
+      const updated = nds.filter(node => node.id !== nodeId);
+      onNodesChange(updated);
+      return updated;
+    });
+    setEdges((eds) => {
+      const updated = eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
+      onEdgesChange(updated);
+      return updated;
+    });
+  }, [setNodes, setEdges, onNodesChange, onEdgesChange]);
+
   const handleDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -54,14 +68,16 @@ function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: P
         y: event.clientY,
       });
 
+      const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newNode: Node = {
-        id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: nodeId,
         type: 'pipeline-node',
         position,
         data: {
           label: nodeType.name,
           nodeType,
-          status: 'idle'
+          status: 'idle',
+          onDelete: () => handleDeleteNode(nodeId)
         },
       };
 
@@ -71,7 +87,7 @@ function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: P
         return updated;
       });
     },
-    [screenToFlowPosition, setNodes, onNodesChange]
+    [screenToFlowPosition, setNodes, onNodesChange, handleDeleteNode]
   );
 
   // Handle edge connections with validation
@@ -129,11 +145,12 @@ function PipelineCanvasContent({ onNodesChange, onEdgesChange, nodeStatuses }: P
         ...node,
         data: {
           ...node.data,
-          status: nodeStatuses.get(node.id) || 'idle'
+          status: nodeStatuses.get(node.id) || 'idle',
+          onDelete: () => handleDeleteNode(node.id)
         }
       }))
     );
-  }, [nodeStatuses, setNodes]);
+  }, [nodeStatuses, setNodes, handleDeleteNode]);
 
   return (
     <div className="w-full h-full" ref={reactFlowWrapper}>

@@ -1,12 +1,19 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Database, Zap, Brain, Archive, Play, CheckCircle, AlertCircle } from 'lucide-react';
+import { Database, Zap, Brain, Archive, Play, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 interface CustomNodeData {
   label: string;
   nodeType: { id: string; name: string };
   status?: 'idle' | 'running' | 'completed' | 'error';
+  onDelete?: () => void;
 }
 
 const nodeIcons = {
@@ -43,46 +50,62 @@ export function CustomNode({ data, selected }: NodeProps) {
   
   const nodeClass = nodeStyles[nodeData.nodeType.name as keyof typeof nodeStyles];
   const statusClass = statusStyles[nodeData.status || 'idle'];
+
+  const handleDelete = () => {
+    if (nodeData.onDelete) {
+      nodeData.onDelete();
+    }
+  };
   
   return (
-    <div className={cn(
-      "relative px-4 py-3 rounded-lg border-2 shadow-node min-w-[140px]",
-      "transition-all duration-300 hover:shadow-lg hover:scale-105",
-      nodeClass,
-      statusClass,
-      selected && "ring-2 ring-primary"
-    )}>
-      {/* Input Handle */}
-      {nodeData.nodeType.name !== 'Data Source' && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="w-3 h-3 bg-background border-2 border-current"
-        />
-      )}
-      
-      {/* Node Content */}
-      <div className="flex items-center gap-2">
-        {IconComponent && <IconComponent className="w-4 h-4" />}
-        <span className="font-medium text-sm">{nodeData.label}</span>
-        {StatusIcon && (
-          <StatusIcon className="w-3 h-3 ml-auto opacity-80" />
-        )}
-      </div>
-      
-      {/* Status Indicator */}
-      {nodeData.status === 'running' && (
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full animate-ping" />
-      )}
-      
-      {/* Output Handle */}
-      {nodeData.nodeType.name !== 'Sink' && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="w-3 h-3 bg-background border-2 border-current"
-        />
-      )}
-    </div>
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <div className={cn(
+          "relative px-4 py-3 rounded-lg border-2 shadow-node min-w-[140px]",
+          "transition-all duration-300 hover:shadow-lg hover:scale-105",
+          nodeClass,
+          statusClass,
+          selected && "ring-2 ring-primary"
+        )}>
+          {/* Input Handle */}
+          {nodeData.nodeType.name !== 'Data Source' && (
+            <Handle
+              type="target"
+              position={Position.Left}
+              className="w-3 h-3 bg-background border-2 border-current"
+            />
+          )}
+          
+          {/* Node Content */}
+          <div className="flex items-center gap-2">
+            {IconComponent && <IconComponent className="w-4 h-4" />}
+            <span className="font-medium text-sm">{nodeData.label}</span>
+            {StatusIcon && (
+              <StatusIcon className="w-3 h-3 ml-auto opacity-80" />
+            )}
+          </div>
+          
+          {/* Status Indicator */}
+          {nodeData.status === 'running' && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full animate-ping" />
+          )}
+          
+          {/* Output Handle */}
+          {nodeData.nodeType.name !== 'Sink' && (
+            <Handle
+              type="source"
+              position={Position.Right}
+              className="w-3 h-3 bg-background border-2 border-current"
+            />
+          )}
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+          <Trash2 className="w-4 h-4 mr-2" />
+          Delete Node
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
